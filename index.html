@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频多维度质量分检视台</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    .glass { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(148, 163, 184, 0.2); }
+    .pill { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
+    .badge-keep { background: #065f46; color: #d1fae5; }
+    .badge-drop { background: #7f1d1d; color: #fee2e2; }
+    .badge-mid  { background: #78350f; color: #fde68a; }
+    select, input { background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 4px 8px; }
+    select:focus, input:focus { outline: none; border-color: #60a5fa; }
+    button.btn { background: #2563eb; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; }
+    button.btn:hover { background: #1d4ed8; }
+    button.btn-ghost { background: transparent; border: 1px solid #475569; color: #cbd5e1; padding: 6px 14px; border-radius: 6px; font-size: 13px; }
+    button.btn-ghost:hover { background: #1e293b; }
+    .hairline { border-top: 1px solid #1e293b; }
+    .meta-json { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; background: #0b1220; padding: 8px; border-radius: 4px; color: #94a3b8; }
+    .video-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; transition: transform 0.15s; }
+    .video-card:hover { transform: translateY(-2px); border-color: #60a5fa; }
+    .video-card video { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
+    .score-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 8px; }
+    .score-cell { padding: 4px 6px; border-radius: 4px; text-align: center; font-size: 12px; }
+    .filename { font-family: ui-monospace, monospace; font-size: 10px; color: #64748b; padding: 4px 8px; word-break: break-all; }
+    .copy-btn { font-size: 10px; color: #60a5fa; cursor: pointer; }
+    .stat-card { background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; }
+    .chart-mini { width: 100%; height: 180px; }
+    details > summary { cursor: pointer; user-select: none; padding: 6px 0; }
+    details > summary:hover { color: #60a5fa; }
+    .scrollable { max-height: 220px; overflow-y: auto; }
+    .scrollable::-webkit-scrollbar { width: 6px; }
+    .scrollable::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .ml-cb { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: #1e293b; border: 1px solid #334155; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .ml-cb:hover { border-color: #60a5fa; }
+    .ml-cb.checked { background: #1e3a8a; border-color: #3b82f6; color: #dbeafe; }
+    /* Loading */
+    .spinner { border: 3px solid #1e293b; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header class="glass sticky top-0 z-50 px-6 py-3">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <h1 class="text-lg font-semibold">视频多维度质量分检视台</h1>
+      <span id="ds-info" class="pill text-slate-400">未加载数据</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="file" id="csv-upload" accept=".csv" class="hidden">
+      <button class="btn-ghost" onclick="document.getElementById('csv-upload').click()">📁 上传 CSV</button>
+      <button class="btn" id="btn-export" disabled>⬇ 导出当前结果</button>
+    </div>
+  </div>
+</header>
+
+<main class="px-6 py-4 space-y-4">
+
+  <!-- Filter panel -->
+  <section class="glass p-4 rounded-lg space-y-3">
+    <div class="flex flex-wrap gap-4 items-end">
+      <label class="flex flex-col text-xs text-slate-400">
+        日期 (project_name 后缀)
+        <select id="filter-date" class="mt-1"><option value="">所有日期</option></select>
+      </label>
+      <label class="flex flex-col text-xs text-slate-400">
+        采样方式
+        <select id="filter-sampling" class="mt-1">
+          <option value="random">随机采样</option>
+          <option value="channel">channel 分层（每 channel 10 条）</option>
+        </select>
+      </label>
+      <label class="flex flex-col text-xs text-slate-400">
+        最大显示数
+        <select id="filter-pagesize" class="mt-1">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+          <option value="500">500</option>
+        </select>
+      </label>
+      <label class="flex flex-col text-xs text-slate-400">
+        Author (requirement_info)
+        <select id="filter-author" class="mt-1" style="min-width:180px"><option value="">所有作者</option></select>
+      </label>
+      <button class="btn ml-auto" onclick="applyAll()">🔄 应用 / 重新采样</button>
+    </div>
+
+    <div class="hairline pt-3">
+      <div class="text-xs text-slate-400 mb-2">分类筛选 (Video Type / Video Content；默认不过滤)</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+        <label class="flex flex-col text-xs"><span class="text-slate-400">Camera Perspective</span><select id="vt-cp" class="mt-1"><option value="">全部</option></select></label>
+        <label class="flex flex-col text-xs"><span class="text-slate-400">Primary Subject</span><select id="vt-ps" class="mt-1"><option value="">全部</option></select></label>
+        <label class="flex flex-col text-xs"><span class="text-slate-400">Interaction Mode</span><select id="vt-im" class="mt-1"><option value="">全部</option></select></label>
+        <label class="flex flex-col text-xs"><span class="text-slate-400">Motion Intensity</span><select id="vt-mi" class="mt-1"><option value="">全部</option></select></label>
+        <label class="flex flex-col text-xs"><span class="text-slate-400">Capture Method</span><select id="vt-cm" class="mt-1"><option value="">全部</option></select></label>
+        <div class="flex flex-col text-xs col-span-2 md:col-span-3">
+          <span class="text-slate-400">Video Content (multi-select; 全空 = 全部)</span>
+          <div id="vc-multi" class="flex flex-wrap gap-1 mt-1 scrollable"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hairline pt-3">
+      <div class="text-xs text-slate-400 mb-2">质量分阈值 (默认: brightness 4-8, motion 4-5, saturation 2-4)</div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-yellow-400">brightness (1-10)</span>
+            <span class="text-xs text-slate-400" id="b-range-label">[4, 8]</span>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="number" min="1" max="10" value="4" id="b-min" class="w-16 text-center"> ≤ score ≤
+            <input type="number" min="1" max="10" value="8" id="b-max" class="w-16 text-center">
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-green-400">motion (1-5)</span>
+            <span class="text-xs text-slate-400" id="m-range-label">[4, 5]</span>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="number" min="1" max="5" value="4" id="m-min" class="w-16 text-center"> ≤ score ≤
+            <input type="number" min="1" max="5" value="5" id="m-max" class="w-16 text-center">
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-pink-400">saturation (1-5)</span>
+            <span class="text-xs text-slate-400" id="s-range-label">[2, 4]</span>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <input type="number" min="1" max="5" value="2" id="s-min" class="w-16 text-center"> ≤ score ≤
+            <input type="number" min="1" max="5" value="4" id="s-max" class="w-16 text-center">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats panel -->
+  <section class="grid grid-cols-1 md:grid-cols-4 gap-3">
+    <div class="stat-card">
+      <div class="text-xs text-slate-400">日期范围内总样本</div>
+      <div class="text-3xl font-bold mt-1" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-xs text-slate-400">满足阈值 (Match)</div>
+      <div class="text-3xl font-bold text-emerald-400 mt-1" id="stat-match">—</div>
+      <div class="text-xs text-slate-500 mt-1" id="stat-match-pct">— %</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-xs text-slate-400">不满足阈值 (Reject)</div>
+      <div class="text-3xl font-bold text-rose-400 mt-1" id="stat-reject">—</div>
+      <div class="text-xs text-slate-500 mt-1" id="stat-reject-pct">— %</div>
+    </div>
+    <div class="stat-card">
+      <div class="text-xs text-slate-400">实际渲染 (采样后)</div>
+      <div class="text-3xl font-bold text-blue-400 mt-1" id="stat-rendered">—</div>
+      <div class="text-xs text-slate-500 mt-1" id="stat-render-info">—</div>
+    </div>
+  </section>
+
+  <!-- Distribution charts + score criteria -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+    <div class="stat-card">
+      <div class="text-sm font-semibold mb-1">brightness 档位分布</div>
+      <div id="chart-b" class="chart-mini"></div>
+    </div>
+    <div class="stat-card">
+      <div class="text-sm font-semibold mb-1">motion 档位分布</div>
+      <div id="chart-m" class="chart-mini"></div>
+    </div>
+    <div class="stat-card">
+      <div class="text-sm font-semibold mb-1">saturation 档位分布</div>
+      <div id="chart-s" class="chart-mini"></div>
+    </div>
+  </section>
+
+  <details class="glass p-4 rounded-lg">
+    <summary class="font-semibold">📖 评分标准说明 (点击展开)</summary>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-xs">
+      <div>
+        <div class="font-semibold text-yellow-400 mb-2">brightness (1-10)</div>
+        <ul class="space-y-1 text-slate-300" id="criteria-b"></ul>
+      </div>
+      <div>
+        <div class="font-semibold text-green-400 mb-2">motion (1-5)</div>
+        <ul class="space-y-1 text-slate-300" id="criteria-m"></ul>
+      </div>
+      <div>
+        <div class="font-semibold text-pink-400 mb-2">saturation (1-5)</div>
+        <ul class="space-y-1 text-slate-300" id="criteria-s"></ul>
+      </div>
+    </div>
+  </details>
+
+  <!-- Video grid -->
+  <section>
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-md font-semibold">视频样例</h2>
+      <span id="grid-status" class="text-xs text-slate-400">—</span>
+    </div>
+    <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+    <div id="grid-empty" class="text-center py-12 text-slate-500 hidden">
+      <div class="text-5xl mb-2">📭</div>
+      <div>当前阈值下无样本，请放宽筛选条件或上传 CSV</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ============================================================
+// 评分标准定义（来自 视频质量分.py，用于 UI 显示）
+// ============================================================
+const CRITERIA_B = [
+  ["1",  "纯黑 / 极暗",      "drop"],
+  ["2",  "很暗 (低调风格)",   "drop"],
+  ["3",  "偏暗",            "borderline"],
+  ["4",  "略偏暗",          "keep"],
+  ["5",  "正常偏暗",        "keep"],
+  ["6",  "正常偏亮",        "keep"],
+  ["7",  "明亮",            "keep"],
+  ["8",  "高调",            "borderline"],
+  ["9",  "接近过曝",        "drop"],
+  ["10", "严重过曝",        "drop"],
+];
+const CRITERIA_M = [
+  ["1", "完全静态 (Frozen)",       "drop"],
+  ["2", "切镜型 (PPT/Cut-like)",   "drop"],
+  ["3", "弱运动 (UI/字幕/抖动)",    "drop"],
+  ["4", "正常运动 (Normal)",       "keep"],
+  ["5", "强运动 (Strong)",         "keep"],
+];
+const CRITERIA_S = [
+  ["1", "接近灰度 (黑白/录屏/夜视)",         "drop"],
+  ["2", "偏灰寡淡 (阴天/老式胶片调色)",       "borderline"],
+  ["3", "正常自然 (日常生活记录)",           "keep"],
+  ["4", "鲜艳自然 (风景/产品/动画) - 最优",   "keep"],
+  ["5", "过饱和滤镜 (强后期/卡通失真)",       "borderline"],
+];
+
+function badgeClass(decision){
+  return decision === "keep" ? "badge-keep" : decision === "drop" ? "badge-drop" : "badge-mid";
+}
+
+function renderCriteriaList(targetId, list){
+  const el = document.getElementById(targetId);
+  el.innerHTML = list.map(([sc, label, dec]) =>
+    `<li class="flex items-center gap-2"><span class="pill ${badgeClass(dec)}">${sc}</span><span class="flex-1">${label}</span><span class="text-slate-500">${dec}</span></li>`
+  ).join("");
+}
+renderCriteriaList("criteria-b", CRITERIA_B);
+renderCriteriaList("criteria-m", CRITERIA_M);
+renderCriteriaList("criteria-s", CRITERIA_S);
+
+// ============================================================
+// 全局状态
+// ============================================================
+const STATE = {
+  rows: [],        // 解析后的所有 CSV 行 (包含展开的 result JSON 字段)
+  filteredAll: [], // 当前阈值下全部匹配（不分页）
+  rendered: [],    // 实际渲染（采样 + 截断后）
+  dates: new Set(),
+  authors: new Set(),
+  videoTypes: { cp: new Set(), ps: new Set(), im: new Set(), mi: new Set(), cm: new Set() },
+  videoContents: new Set(),
+  selectedVideoContents: new Set(),
+};
+
+const charts = {};
+
+// ============================================================
+// CSV 上传 & 解析
+// ============================================================
+document.getElementById("csv-upload").addEventListener("change", function(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById("ds-info").textContent = `解析中... ${(file.size/1024/1024).toFixed(1)} MB`;
+  document.getElementById("ds-info").innerHTML = `<span class="spinner"></span> 解析中... ${(file.size/1024/1024).toFixed(1)} MB`;
+  const startTs = Date.now();
+  STATE.rows = [];
+  STATE.dates.clear();
+  STATE.authors.clear();
+  ["cp","ps","im","mi","cm"].forEach(k => STATE.videoTypes[k].clear());
+  STATE.videoContents.clear();
+  STATE.selectedVideoContents.clear();
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    worker: false,
+    dynamicTyping: false,
+    chunk: function(results) {
+      for (const r of results.data) processRow(r);
+    },
+    complete: function() {
+      const cost = ((Date.now()-startTs)/1000).toFixed(1);
+      document.getElementById("ds-info").textContent = `已加载 ${STATE.rows.length.toLocaleString()} 行 (${cost}s)`;
+      populateSelectors();
+      applyAll();
+      document.getElementById("btn-export").disabled = false;
+    },
+    error: function(err) {
+      document.getElementById("ds-info").textContent = `解析失败: ${err.message || err}`;
+    },
+  });
+});
+
+function processRow(raw){
+  if (!raw.result) return;
+  let parsed;
+  try { parsed = JSON.parse(raw.result); }
+  catch(e) { return; }
+  // 提取项目名后缀（精确到小时）
+  // project_name 形如: "视频质量分_smartclip_世界模型channel寻源v3_daily_2026050409"
+  // 取最后一段 yyyymmddhh
+  const pn = (raw.project_name || "").trim();
+  const m = pn.match(/(\d{10})$/);
+  const dateSuffix = m ? m[1] : "";
+
+  const ri = parsed.requirement_info || {};
+  const cr = parsed.classfication_result || {};
+  const vt = cr["Video Type"] || {};
+  const vc = cr["Video Content"] || [];
+  const bm = parsed.brightness_metrics || {};
+  const mm = parsed.motion_metrics || {};
+  const sm = parsed.saturation_metrics || {};
+
+  const row = {
+    raw_id: raw.raw_id || "",
+    project_name: pn,
+    date: dateSuffix,
+    video_url: raw.video_url || "",
+    dur: parseFloat(raw.dur) || 0,
+    channel: ri.channel || "",
+    author: ri.author || "",
+    page_url: ri.page_url || "",
+    cp: vt["Camera Perspective"] || "",
+    ps: vt["Primary Controlling Subject"] || "",
+    im: vt["Interaction Mode"] || "",
+    mi: vt["Motion Intensity"] || "",
+    cm: vt["Capture Method"] || "",
+    vc: Array.isArray(vc) ? vc : [],
+    b_score: bm.score || 0,
+    m_score: mm.score || 0,
+    s_score: sm.score || 0,
+    raw_json_str: raw.result,
+  };
+
+  STATE.rows.push(row);
+  if (dateSuffix) STATE.dates.add(dateSuffix);
+  if (row.author) STATE.authors.add(row.author);
+  if (row.cp) STATE.videoTypes.cp.add(row.cp);
+  if (row.ps) STATE.videoTypes.ps.add(row.ps);
+  if (row.im) STATE.videoTypes.im.add(row.im);
+  if (row.mi) STATE.videoTypes.mi.add(row.mi);
+  if (row.cm) STATE.videoTypes.cm.add(row.cm);
+  for (const c of row.vc) if (c) STATE.videoContents.add(c);
+}
+
+function populateSelectors(){
+  // 日期
+  const dateSel = document.getElementById("filter-date");
+  dateSel.innerHTML = '<option value="">所有日期</option>' +
+    [...STATE.dates].sort().reverse().map(d => `<option value="${d}">${d}</option>`).join("");
+
+  // Video Type 5 维度
+  const buildOpts = (set) => '<option value="">全部</option>' +
+    [...set].sort().map(v => `<option value="${v}">${v}</option>`).join("");
+  document.getElementById("vt-cp").innerHTML = buildOpts(STATE.videoTypes.cp);
+  document.getElementById("vt-ps").innerHTML = buildOpts(STATE.videoTypes.ps);
+  document.getElementById("vt-im").innerHTML = buildOpts(STATE.videoTypes.im);
+  document.getElementById("vt-mi").innerHTML = buildOpts(STATE.videoTypes.mi);
+  document.getElementById("vt-cm").innerHTML = buildOpts(STATE.videoTypes.cm);
+
+  // Video Content 多选
+  const vcDiv = document.getElementById("vc-multi");
+  vcDiv.innerHTML = [...STATE.videoContents].sort().map(c =>
+    `<span class="ml-cb" data-vc="${c}">${c}</span>`
+  ).join("");
+  vcDiv.querySelectorAll(".ml-cb").forEach(el => {
+    el.addEventListener("click", () => {
+      const v = el.dataset.vc;
+      if (STATE.selectedVideoContents.has(v)) {
+        STATE.selectedVideoContents.delete(v);
+        el.classList.remove("checked");
+      } else {
+        STATE.selectedVideoContents.add(v);
+        el.classList.add("checked");
+      }
+    });
+  });
+}
+
+// ============================================================
+// 过滤 / 采样 / 渲染主流程
+// ============================================================
+function getThresholds(){
+  return {
+    date: document.getElementById("filter-date").value,
+    sampling: document.getElementById("filter-sampling").value,
+    pageSize: parseInt(document.getElementById("filter-pagesize").value, 10),
+    author: document.getElementById("filter-author").value,
+    cp: document.getElementById("vt-cp").value,
+    ps: document.getElementById("vt-ps").value,
+    im: document.getElementById("vt-im").value,
+    mi: document.getElementById("vt-mi").value,
+    cm: document.getElementById("vt-cm").value,
+    vcSet: STATE.selectedVideoContents,
+    bMin: parseInt(document.getElementById("b-min").value, 10),
+    bMax: parseInt(document.getElementById("b-max").value, 10),
+    mMin: parseInt(document.getElementById("m-min").value, 10),
+    mMax: parseInt(document.getElementById("m-max").value, 10),
+    sMin: parseInt(document.getElementById("s-min").value, 10),
+    sMax: parseInt(document.getElementById("s-max").value, 10),
+  };
+}
+
+function rowMatches(r, t){
+  if (t.date && r.date !== t.date) return false;
+  if (t.cp && r.cp !== t.cp) return false;
+  if (t.ps && r.ps !== t.ps) return false;
+  if (t.im && r.im !== t.im) return false;
+  if (t.mi && r.mi !== t.mi) return false;
+  if (t.cm && r.cm !== t.cm) return false;
+  if (t.vcSet.size > 0) {
+    let any = false;
+    for (const c of r.vc) if (t.vcSet.has(c)) { any = true; break; }
+    if (!any) return false;
+  }
+  if (r.b_score < t.bMin || r.b_score > t.bMax) return false;
+  if (r.m_score < t.mMin || r.m_score > t.mMax) return false;
+  if (r.s_score < t.sMin || r.s_score > t.sMax) return false;
+  return true;
+}
+
+function applyAll(){
+  if (STATE.rows.length === 0) return;
+  const t = getThresholds();
+
+  // 1) 第一阶段过滤：日期范围内所有样本
+  const inDate = t.date ? STATE.rows.filter(r => r.date === t.date) : STATE.rows;
+  const totalInDate = inDate.length;
+
+  // 2) 第二阶段过滤：阈值匹配（不含 author）
+  const matched = inDate.filter(r => rowMatches(r, t));
+
+  // 3) author 选项填充（仅来自 matched）
+  const authorSet = new Set();
+  for (const r of matched) if (r.author) authorSet.add(r.author);
+  const authorSel = document.getElementById("filter-author");
+  const prevAuthor = authorSel.value;
+  authorSel.innerHTML = '<option value="">所有作者 (' + authorSet.size + ')</option>' +
+    [...authorSet].sort().map(a => `<option value="${a}">${a}</option>`).join("");
+  if (prevAuthor && authorSet.has(prevAuthor)) authorSel.value = prevAuthor;
+
+  // 4) author 过滤
+  const finalMatched = t.author ? matched.filter(r => r.author === t.author) : matched;
+  STATE.filteredAll = finalMatched;
+
+  // 5) 采样
+  let sampled;
+  if (t.sampling === "channel") {
+    // 按 channel 分组，每组最多 10
+    const groups = {};
+    for (const r of finalMatched) {
+      const c = r.channel || "(no_channel)";
+      if (!groups[c]) groups[c] = [];
+      if (groups[c].length < 10) groups[c].push(r);
+    }
+    sampled = [].concat(...Object.values(groups));
+    // 打乱顺序
+    sampled.sort(() => Math.random() - 0.5);
+  } else {
+    sampled = [...finalMatched].sort(() => Math.random() - 0.5);
+  }
+
+  // 6) 截断
+  const rendered = sampled.slice(0, t.pageSize);
+  STATE.rendered = rendered;
+
+  // 7) 更新统计
+  const rejectCount = totalInDate - matched.length;
+  document.getElementById("stat-total").textContent = totalInDate.toLocaleString();
+  document.getElementById("stat-match").textContent = matched.length.toLocaleString();
+  document.getElementById("stat-match-pct").textContent = totalInDate ? (100*matched.length/totalInDate).toFixed(2) + "%" : "—";
+  document.getElementById("stat-reject").textContent = rejectCount.toLocaleString();
+  document.getElementById("stat-reject-pct").textContent = totalInDate ? (100*rejectCount/totalInDate).toFixed(2) + "%" : "—";
+  document.getElementById("stat-rendered").textContent = rendered.length.toLocaleString();
+  const samplingDesc = t.sampling === "channel" ? `channel 分层 (${Object.keys(sampled.reduce((acc,r)=>{acc[r.channel||"(none)"]=1;return acc;},{})).length} 个 channel)` : "随机";
+  document.getElementById("stat-render-info").textContent = `${samplingDesc} · 上限 ${t.pageSize}`;
+
+  // 8) 阈值显示文字
+  document.getElementById("b-range-label").textContent = `[${t.bMin}, ${t.bMax}]`;
+  document.getElementById("m-range-label").textContent = `[${t.mMin}, ${t.mMax}]`;
+  document.getElementById("s-range-label").textContent = `[${t.sMin}, ${t.sMax}]`;
+
+  // 9) 全局档位分布图（基于日期范围内全部数据，不受阈值影响）
+  renderDistChart("chart-b", "brightness", inDate.map(r => r.b_score), 10, "#facc15");
+  renderDistChart("chart-m", "motion",     inDate.map(r => r.m_score),  5, "#34d399");
+  renderDistChart("chart-s", "saturation", inDate.map(r => r.s_score),  5, "#f472b6");
+
+  // 10) 渲染视频卡片
+  renderVideoGrid();
+  document.getElementById("grid-status").textContent =
+    `渲染 ${rendered.length} / 匹配 ${matched.length} / 总数 ${totalInDate}`;
+}
+
+// 阈值变化即时刷新
+["filter-date","filter-sampling","filter-pagesize","filter-author",
+ "vt-cp","vt-ps","vt-im","vt-mi","vt-cm",
+ "b-min","b-max","m-min","m-max","s-min","s-max"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("change", applyAll);
+});
+
+// ============================================================
+// 视频卡片渲染（含懒加载）
+// ============================================================
+let lazyObserver = null;
+
+function renderVideoGrid(){
+  const grid = document.getElementById("video-grid");
+  const empty = document.getElementById("grid-empty");
+  if (STATE.rendered.length === 0) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  grid.innerHTML = STATE.rendered.map((r, idx) => {
+    const bDec = decisionFromList(CRITERIA_B, r.b_score);
+    const mDec = decisionFromList(CRITERIA_M, r.m_score);
+    const sDec = decisionFromList(CRITERIA_S, r.s_score);
+    const meta = JSON.stringify({
+      requirement_info: { channel: r.channel, page_url: r.page_url, author: r.author },
+      classfication_result: {
+        "Video Type": { "Camera Perspective": r.cp, "Primary Controlling Subject": r.ps,
+                       "Interaction Mode": r.im, "Motion Intensity": r.mi, "Capture Method": r.cm },
+        "Video Content": r.vc,
+      },
+    }, null, 2);
+    const fullName = `${r.project_name || ""} / ${r.raw_id || ""}`;
+    return `
+    <div class="video-card" data-idx="${idx}">
+      <video preload="none" controls muted playsinline data-src="${escapeAttr(r.video_url)}" poster=""></video>
+      <div class="score-row">
+        <div class="score-cell ${badgeClass(bDec)}" title="brightness 评分">B: ${r.b_score}</div>
+        <div class="score-cell ${badgeClass(mDec)}" title="motion 评分">M: ${r.m_score}</div>
+        <div class="score-cell ${badgeClass(sDec)}" title="saturation 评分">S: ${r.s_score}</div>
+      </div>
+      <details>
+        <summary class="px-2 text-xs text-slate-400">meta 信息 (JSON)</summary>
+        <div class="meta-json">${escapeHtml(meta)}</div>
+      </details>
+      <div class="filename" title="${escapeAttr(fullName)}">
+        ${escapeHtml(fullName.length > 90 ? fullName.slice(0, 90) + "..." : fullName)}
+        <span class="copy-btn ml-1" onclick="copyText('${escapeAttr(fullName)}')">[copy]</span>
+      </div>
+    </div>`;
+  }).join("");
+
+  // 懒加载：使用 IntersectionObserver 把 data-src 推到 src
+  if (lazyObserver) lazyObserver.disconnect();
+  lazyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        const v = en.target;
+        if (!v.src && v.dataset.src) {
+          v.src = v.dataset.src;
+          v.preload = "metadata";
+        }
+        lazyObserver.unobserve(v);
+      }
+    });
+  }, { rootMargin: "200px" });
+  grid.querySelectorAll("video").forEach(v => lazyObserver.observe(v));
+}
+
+function decisionFromList(list, score){
+  for (const [sc, _, dec] of list) if (parseInt(sc, 10) === score) return dec;
+  return "unknown";
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s){ return escapeHtml(String(s)); }
+
+function copyText(t){
+  navigator.clipboard?.writeText(t).then(()=>{
+    // 可加个 toast，简化：alert 一次性提示
+  }).catch(()=>{});
+}
+
+// ============================================================
+// 全局档位分布图 (ECharts)
+// ============================================================
+function renderDistChart(elId, name, scores, maxScore, color){
+  const counts = new Array(maxScore + 1).fill(0); // index 0~maxScore
+  for (const s of scores) {
+    if (s >= 1 && s <= maxScore) counts[s] += 1;
+  }
+  const data = [];
+  const labels = [];
+  for (let i = 1; i <= maxScore; i++) {
+    labels.push(String(i));
+    data.push(counts[i]);
+  }
+  if (!charts[elId]) charts[elId] = echarts.init(document.getElementById(elId), "dark", { renderer: "canvas" });
+  charts[elId].setOption({
+    backgroundColor: "transparent",
+    grid: { left: 36, right: 8, top: 16, bottom: 22 },
+    tooltip: { trigger: "axis", formatter: p => `${name} = ${p[0].name}<br/>${p[0].value.toLocaleString()} (${(100*p[0].value/Math.max(1, scores.length)).toFixed(1)}%)` },
+    xAxis: { type: "category", data: labels, axisLabel: { color: "#94a3b8", fontSize: 10 } },
+    yAxis: { type: "value", axisLabel: { color: "#94a3b8", fontSize: 10 }, splitLine: { lineStyle: { color: "#1e293b" } } },
+    series: [{ type: "bar", data, itemStyle: { color }, barWidth: "60%", label: { show: true, color: "#cbd5e1", fontSize: 9, position: "top" } }],
+  });
+}
+
+// ============================================================
+// 导出 CSV (满足阈值的全部样本，未截断)
+// ============================================================
+document.getElementById("btn-export").addEventListener("click", () => {
+  if (STATE.filteredAll.length === 0) { alert("当前阈值下无样本"); return; }
+  const t = getThresholds();
+  const headers = ["raw_id","project_name","date","video_url","channel","author","page_url",
+                   "Camera Perspective","Primary Subject","Interaction Mode","Motion Intensity","Capture Method",
+                   "Video Content","brightness_score","motion_score","saturation_score","dur"];
+  const lines = [headers.join(",")];
+  for (const r of STATE.filteredAll) {
+    const row = [
+      r.raw_id, r.project_name, r.date,
+      r.video_url, r.channel, r.author, r.page_url,
+      r.cp, r.ps, r.im, r.mi, r.cm,
+      r.vc.join("|"),
+      r.b_score, r.m_score, r.s_score, r.dur,
+    ].map(v => {
+      const s = String(v ?? "");
+      return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
+    });
+    lines.push(row.join(","));
+  }
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `quality_qc_export_${t.date || "all"}_b${t.bMin}-${t.bMax}_m${t.mMin}-${t.mMax}_s${t.sMin}-${t.sMax}_${STATE.filteredAll.length}rows.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// 自适应大小
+window.addEventListener("resize", () => {
+  for (const k in charts) charts[k] && charts[k].resize();
+});
+</script>
+</body>
+</html>
