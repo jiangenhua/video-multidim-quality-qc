@@ -8,37 +8,96 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
-    .glass { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(148, 163, 184, 0.2); }
-    .pill { background: #1e293b; border: 1px solid #334155; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
-    .badge-keep { background: #065f46; color: #d1fae5; }
-    .badge-drop { background: #7f1d1d; color: #fee2e2; }
-    .badge-mid  { background: #78350f; color: #fde68a; }
-    select, input { background: #1e293b; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 4px 8px; }
-    select:focus, input:focus { outline: none; border-color: #60a5fa; }
-    button.btn { background: #2563eb; color: #fff; padding: 6px 14px; border-radius: 6px; font-size: 13px; }
-    button.btn:hover { background: #1d4ed8; }
-    button.btn-ghost { background: transparent; border: 1px solid #475569; color: #cbd5e1; padding: 6px 14px; border-radius: 6px; font-size: 13px; }
-    button.btn-ghost:hover { background: #1e293b; }
-    .hairline { border-top: 1px solid #1e293b; }
+    :root {
+      --bg-base: #0a0e1a;
+      --bg-card: #111827;
+      --bg-card-2: #0f1626;
+      --border-subtle: #1f2937;
+      --border-mid: #2d3748;
+      --text-1: #f1f5f9;
+      --text-2: #cbd5e1;
+      --text-3: #94a3b8;
+      --text-4: #64748b;
+      --accent: #60a5fa;
+      --accent-soft: rgba(96, 165, 250, 0.12);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "SF Pro Display", "Helvetica Neue", Arial, sans-serif; background: var(--bg-base); color: var(--text-2); -webkit-font-smoothing: antialiased; letter-spacing: 0.01em; }
+    .glass { background: rgba(17, 24, 39, 0.92); backdrop-filter: blur(12px) saturate(140%); border-bottom: 1px solid var(--border-subtle); }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px 16px; }
+    .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; letter-spacing: 0; }
+    .badge-keep { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-drop { background: rgba(244, 63, 94, 0.15); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.3); }
+    .badge-mid  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.3); }
+    select, input { background: var(--bg-card-2); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-1); padding: 5px 10px; font-size: 13px; transition: border-color 0.15s; }
+    select:hover, input:hover { border-color: var(--border-mid); }
+    select:focus, input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    button.btn { background: var(--accent); color: #0a0e1a; padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; transition: all 0.15s; }
+    button.btn:hover:not(:disabled) { background: #93c5fd; transform: translateY(-1px); }
+    button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.btn-ghost { background: transparent; border: 1px solid var(--border-mid); color: var(--text-2); padding: 7px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+    button.btn-ghost:hover { background: var(--bg-card-2); border-color: var(--accent); color: var(--accent); }
+    .hairline { border-top: 1px solid var(--border-subtle); }
+    /* Brand marker */
+    .brand-mark { display: inline-flex; align-items: center; gap: 4px; padding: 2px 0; }
+    .brand-dot { width: 6px; height: 6px; border-radius: 1px; background: var(--accent); display: inline-block; }
+    .brand-dot-2 { background: #34d399; opacity: 0.85; }
+    .brand-dot-3 { background: #f472b6; opacity: 0.7; }
+    .brand-title { font-size: 15px; font-weight: 700; letter-spacing: 0.18em; color: var(--text-1); line-height: 1.2; }
+    .brand-subtitle { font-size: 11px; color: var(--text-4); letter-spacing: 0.05em; margin-top: 2px; font-weight: 400; }
+    /* Status pill */
+    .ds-pill { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card-2); border: 1px solid var(--border-subtle); padding: 5px 12px; border-radius: 999px; font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .ds-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-4); }
+    .ds-pill.loaded .ds-dot { background: #34d399; box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18); }
+    .ds-pill.loading .ds-dot { background: #fbbf24; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    /* Section labels */
+    .section-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); font-weight: 600; }
+    /* Criteria rows (评分标准说明) */
+    .criteria-row { padding: 8px 0; border-bottom: 1px dashed var(--border-subtle); list-style: none; }
+    .criteria-row:last-child { border-bottom: none; }
+    .criteria-line-1 { display: flex; align-items: center; gap: 8px; }
+    .criteria-label { flex: 1; color: var(--text-1); font-size: 12.5px; font-weight: 500; }
+    .criteria-decision { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .criteria-formula { margin-top: 4px; padding: 4px 8px; background: var(--bg-card-2); border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--text-3); line-height: 1.5; word-break: break-word; }
+    .legend-vars { margin-top: 12px; padding: 10px 12px; background: var(--bg-card-2); border-radius: 6px; font-size: 11px; color: var(--text-3); line-height: 1.7; }
+    .legend-vars code { background: transparent; color: var(--accent); font-weight: 600; }
+    /* KPI cards */
+    .kpi-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; position: relative; overflow: hidden; }
+    .kpi-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--text-4); opacity: 0.6; }
+    .kpi-card.kpi-match::before { background: #34d399; opacity: 1; }
+    .kpi-card.kpi-reject::before { background: #f43f5e; opacity: 1; }
+    .kpi-card.kpi-render::before { background: var(--accent); opacity: 1; }
+    .kpi-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); font-weight: 600; }
+    .kpi-value { font-size: 30px; font-weight: 700; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+    .kpi-sub { font-size: 11px; color: var(--text-4); margin-top: 4px; font-variant-numeric: tabular-nums; }
     .meta-json { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto; background: #0b1220; padding: 8px; border-radius: 4px; color: #94a3b8; }
     .video-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; overflow: hidden; transition: transform 0.15s; }
     .video-card:hover { transform: translateY(-2px); border-color: #60a5fa; }
     .video-card video { width: 100%; aspect-ratio: 16/9; background: #000; object-fit: contain; }
     .score-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 8px; }
-    .score-cell { padding: 4px 6px; border-radius: 4px; text-align: center; font-size: 12px; }
+    .score-cell { padding: 5px 4px; border-radius: 5px; text-align: center; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+    .score-cell .score-num { font-size: 13px; font-weight: 700; margin-left: 4px; font-variant-numeric: tabular-nums; }
     .filename { font-family: ui-monospace, monospace; font-size: 10px; color: #64748b; padding: 4px 8px; word-break: break-all; }
     .copy-btn { font-size: 10px; color: #60a5fa; cursor: pointer; }
-    .stat-card { background: rgba(30, 41, 59, 0.6); border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; }
     .chart-mini { width: 100%; height: 180px; }
     details > summary { cursor: pointer; user-select: none; padding: 6px 0; }
     details > summary:hover { color: #60a5fa; }
     .scrollable { max-height: 220px; overflow-y: auto; }
     .scrollable::-webkit-scrollbar { width: 6px; }
     .scrollable::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    .ml-cb { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: #1e293b; border: 1px solid #334155; border-radius: 4px; font-size: 12px; cursor: pointer; }
-    .ml-cb:hover { border-color: #60a5fa; }
-    .ml-cb.checked { background: #1e3a8a; border-color: #3b82f6; color: #dbeafe; }
+    /* Video Content multi-select grid */
+    .vc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    @media (min-width: 1280px) { .vc-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+    .ml-cb { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-card-2); border: 1px solid var(--border-subtle); border-radius: 6px; font-size: 12.5px; cursor: pointer; transition: all 0.12s ease; user-select: none; }
+    .ml-cb:hover { border-color: var(--accent); background: rgba(96, 165, 250, 0.05); }
+    .ml-cb.checked { background: var(--accent-soft); border-color: var(--accent); color: var(--text-1); }
+    .ml-cb-mark { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border-mid); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ml-cb.checked .ml-cb-mark { background: var(--accent); border-color: var(--accent); }
+    .ml-cb.checked .ml-cb-mark::after { content: "✓"; color: #0a0e1a; font-size: 9px; font-weight: 800; line-height: 1; }
+    .ml-cb.hidden-search { display: none; }
+    .vc-search { width: 200px; }
+    .vc-clear { padding: 4px 10px !important; font-size: 11px !important; }
+    .vc-counter { font-weight: 600; color: var(--accent); letter-spacing: 0.05em; }
     /* Loading */
     .spinner { border: 3px solid #1e293b; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; display: inline-block; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -46,16 +105,24 @@
 </head>
 <body>
 
-<header class="glass sticky top-0 z-50 px-6 py-3">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center gap-3">
-      <h1 class="text-lg font-semibold">视频多维度质量分检视台</h1>
-      <span id="ds-info" class="pill text-slate-400">未加载数据</span>
+<header class="glass sticky top-0 z-50">
+  <div class="px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="brand-mark">
+        <span class="brand-dot"></span>
+        <span class="brand-dot brand-dot-2"></span>
+        <span class="brand-dot brand-dot-3"></span>
+      </div>
+      <div>
+        <h1 class="brand-title">VIDEO QUALITY QC</h1>
+        <div class="brand-subtitle">多维度质量分检视台 · brightness · motion · saturation · classification</div>
+      </div>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-3">
+      <span id="ds-info" class="ds-pill"><span class="ds-dot"></span>未加载数据</span>
       <input type="file" id="csv-upload" accept=".csv" class="hidden">
-      <button class="btn-ghost" onclick="document.getElementById('csv-upload').click()">📁 上传 CSV</button>
-      <button class="btn" id="btn-export" disabled>⬇ 导出当前结果</button>
+      <button class="btn-ghost" onclick="document.getElementById('csv-upload').click()">上传 CSV</button>
+      <button class="btn" id="btn-export" disabled>导出当前结果</button>
     </div>
   </div>
 </header>
@@ -93,22 +160,29 @@
     </div>
 
     <div class="hairline pt-3">
-      <div class="text-xs text-slate-400 mb-2">分类筛选 (Video Type / Video Content；默认不过滤)</div>
+      <div class="section-label mb-3">分类筛选 · Video Type / Content (默认全部)</div>
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         <label class="flex flex-col text-xs"><span class="text-slate-400">Camera Perspective</span><select id="vt-cp" class="mt-1"><option value="">全部</option></select></label>
         <label class="flex flex-col text-xs"><span class="text-slate-400">Primary Subject</span><select id="vt-ps" class="mt-1"><option value="">全部</option></select></label>
         <label class="flex flex-col text-xs"><span class="text-slate-400">Interaction Mode</span><select id="vt-im" class="mt-1"><option value="">全部</option></select></label>
         <label class="flex flex-col text-xs"><span class="text-slate-400">Motion Intensity</span><select id="vt-mi" class="mt-1"><option value="">全部</option></select></label>
         <label class="flex flex-col text-xs"><span class="text-slate-400">Capture Method</span><select id="vt-cm" class="mt-1"><option value="">全部</option></select></label>
-        <div class="flex flex-col text-xs col-span-2 md:col-span-3">
-          <span class="text-slate-400">Video Content (multi-select; 全空 = 全部)</span>
-          <div id="vc-multi" class="flex flex-wrap gap-1 mt-1 scrollable"></div>
+      </div>
+
+      <div class="vc-block mt-3 pt-3 hairline">
+        <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
+          <span class="section-label">Video Content · 多选 · <span class="vc-counter" id="vc-counter">0 / 0</span></span>
+          <div class="flex items-center gap-2">
+            <input type="text" id="vc-search" placeholder="搜索类目..." class="vc-search">
+            <button class="btn-ghost vc-clear" onclick="clearVc()">清空</button>
+          </div>
         </div>
+        <div id="vc-multi" class="vc-grid"></div>
       </div>
     </div>
 
     <div class="hairline pt-3">
-      <div class="text-xs text-slate-400 mb-2">质量分阈值 (默认: brightness 4-8, motion 4-5, saturation 2-4)</div>
+      <div class="section-label mb-3">质量分阈值 · brightness 4-8 / motion 4-5 / saturation 2-4 默认</div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div class="stat-card">
           <div class="flex items-center justify-between">
@@ -146,65 +220,73 @@
 
   <!-- Stats panel -->
   <section class="grid grid-cols-1 md:grid-cols-4 gap-3">
-    <div class="stat-card">
-      <div class="text-xs text-slate-400">日期范围内总样本</div>
-      <div class="text-3xl font-bold mt-1" id="stat-total">—</div>
+    <div class="kpi-card">
+      <div class="kpi-label">日期范围内总样本</div>
+      <div class="kpi-value" id="stat-total">—</div>
+      <div class="kpi-sub">&nbsp;</div>
     </div>
-    <div class="stat-card">
-      <div class="text-xs text-slate-400">满足阈值 (Match)</div>
-      <div class="text-3xl font-bold text-emerald-400 mt-1" id="stat-match">—</div>
-      <div class="text-xs text-slate-500 mt-1" id="stat-match-pct">— %</div>
+    <div class="kpi-card kpi-match">
+      <div class="kpi-label">满足阈值 · Match</div>
+      <div class="kpi-value text-emerald-400" id="stat-match">—</div>
+      <div class="kpi-sub" id="stat-match-pct">—</div>
     </div>
-    <div class="stat-card">
-      <div class="text-xs text-slate-400">不满足阈值 (Reject)</div>
-      <div class="text-3xl font-bold text-rose-400 mt-1" id="stat-reject">—</div>
-      <div class="text-xs text-slate-500 mt-1" id="stat-reject-pct">— %</div>
+    <div class="kpi-card kpi-reject">
+      <div class="kpi-label">不满足阈值 · Reject</div>
+      <div class="kpi-value text-rose-400" id="stat-reject">—</div>
+      <div class="kpi-sub" id="stat-reject-pct">—</div>
     </div>
-    <div class="stat-card">
-      <div class="text-xs text-slate-400">实际渲染 (采样后)</div>
-      <div class="text-3xl font-bold text-blue-400 mt-1" id="stat-rendered">—</div>
-      <div class="text-xs text-slate-500 mt-1" id="stat-render-info">—</div>
+    <div class="kpi-card kpi-render">
+      <div class="kpi-label">实际渲染 · 采样后</div>
+      <div class="kpi-value text-sky-400" id="stat-rendered">—</div>
+      <div class="kpi-sub" id="stat-render-info">—</div>
     </div>
   </section>
 
   <!-- Distribution charts + score criteria -->
   <section class="grid grid-cols-1 lg:grid-cols-3 gap-3">
     <div class="stat-card">
-      <div class="text-sm font-semibold mb-1">brightness 档位分布</div>
+      <div class="section-label mb-2"><span class="text-yellow-400">●</span> brightness · 档位分布</div>
       <div id="chart-b" class="chart-mini"></div>
     </div>
     <div class="stat-card">
-      <div class="text-sm font-semibold mb-1">motion 档位分布</div>
+      <div class="section-label mb-2"><span class="text-emerald-400">●</span> motion · 档位分布</div>
       <div id="chart-m" class="chart-mini"></div>
     </div>
     <div class="stat-card">
-      <div class="text-sm font-semibold mb-1">saturation 档位分布</div>
+      <div class="section-label mb-2"><span class="text-pink-400">●</span> saturation · 档位分布</div>
       <div id="chart-s" class="chart-mini"></div>
     </div>
   </section>
 
-  <details class="glass p-4 rounded-lg">
-    <summary class="font-semibold">📖 评分标准说明 (点击展开)</summary>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 text-xs">
+  <details class="stat-card">
+    <summary class="section-label">评分标准说明 · 阈值公式 (点击展开)</summary>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
       <div>
-        <div class="font-semibold text-yellow-400 mb-2">brightness (1-10)</div>
-        <ul class="space-y-1 text-slate-300" id="criteria-b"></ul>
+        <div class="text-yellow-400 font-semibold mb-2 text-sm">brightness · 亮度 (1-10)</div>
+        <ul class="text-slate-300" id="criteria-b"></ul>
       </div>
       <div>
-        <div class="font-semibold text-green-400 mb-2">motion (1-5)</div>
-        <ul class="space-y-1 text-slate-300" id="criteria-m"></ul>
+        <div class="text-green-400 font-semibold mb-2 text-sm">motion · 运动度 (1-5)</div>
+        <ul class="text-slate-300" id="criteria-m"></ul>
       </div>
       <div>
-        <div class="font-semibold text-pink-400 mb-2">saturation (1-5)</div>
-        <ul class="space-y-1 text-slate-300" id="criteria-s"></ul>
+        <div class="text-pink-400 font-semibold mb-2 text-sm">saturation · 饱和度 (1-5)</div>
+        <ul class="text-slate-300" id="criteria-s"></ul>
       </div>
+    </div>
+    <div class="legend-vars">
+      <div class="font-semibold text-slate-400 mb-1">变量含义 (HSV-S 通道归一化到 [0,1])</div>
+      <div><code>avg</code>=平均值 · <code>dark10</code>=亮度&lt;0.10 像素占比 · <code>hot95</code>=亮度/饱和度&gt;0.95 像素占比 · <code>p99</code>=全像素 99 分位</div>
+      <div><code>highlight90</code>=亮度&gt;0.90 占比 · <code>spatial_std</code>=单帧像素 std · <code>shadow25</code>=亮度&lt;0.25 占比 · <code>div</code>=H 通道熵</div>
+      <div><code>rm</code>=residual_motion · <code>ag</code>=active_grid_ratio · <code>qp</code>=quiet_pair_ratio · <code>bj_max</code>=between_seg_jump_max · <code>ent</code>=spatial_entropy</div>
+      <div><code>gs</code>=global_shift_px · <code>mm</code>=motion_mean · <code>em</code>=edge_motion_mean · <code>ts</code>=motion_temporal_std · <code>main_signal</code>=max(rm/0.20, ag/0.60, em/0.07)</div>
     </div>
   </details>
 
   <!-- Video grid -->
   <section>
     <div class="flex items-center justify-between mb-2">
-      <h2 class="text-md font-semibold">视频样例</h2>
+      <h2 class="section-label">视频样例 · Sample Cards</h2>
       <span id="grid-status" class="text-xs text-slate-400">—</span>
     </div>
     <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
@@ -218,33 +300,43 @@
 
 <script>
 // ============================================================
-// 评分标准定义（来自 视频质量分.py，用于 UI 显示）
+// 评分标准定义 (来自 视频质量分.py，4 元组：[档位, 语义, 决策, 阈值公式])
+// 阈值公式所用变量名（HSV-S 通道归一化到 [0,1]）：
+//   亮度: avg=avg_brightness, dark10=dark_ratio_10, hot95=hot_ratio_95,
+//         p99=p99_global, highlight90=highlight_ratio_90, spatial_std=spatial_std_mean,
+//         shadow25=shadow_ratio_25
+//   饱和度: avg=avg_saturation, max=max_sat, min=min_sat, hot95=hot_sat_ratio_95,
+//          div=color_diversity (HSV-H 直方图熵)
+//   运动: rm=residual_motion, ag=active_grid_ratio, qp=quiet_pair_ratio,
+//        bj_max=between_seg_jump_max, ent=spatial_entropy, gs=global_shift_px,
+//        mm=motion_mean, em=edge_motion_mean, ts=motion_temporal_std
+//        main_signal = max(rm/0.20, ag/0.60, em/0.07)
 // ============================================================
 const CRITERIA_B = [
-  ["1",  "纯黑 / 极暗",      "drop"],
-  ["2",  "很暗 (低调风格)",   "drop"],
-  ["3",  "偏暗",            "borderline"],
-  ["4",  "略偏暗",          "keep"],
-  ["5",  "正常偏暗",        "keep"],
-  ["6",  "正常偏亮",        "keep"],
-  ["7",  "明亮",            "keep"],
-  ["8",  "高调",            "borderline"],
-  ["9",  "接近过曝",        "drop"],
-  ["10", "严重过曝",        "drop"],
+  ["1",  "纯黑 / 极暗",                    "drop",       "avg<0.05 ∧ dark10>0.85 ∧ p99<0.30 ∧ spatial_std<0.08"],
+  ["2",  "很暗 (低调风格)",                 "drop",       "avg<0.10 ∧ dark10>0.65 ∧ p99<0.40"],
+  ["3",  "偏暗",                          "borderline", "avg≈0.10-0.20，主分线性映射 base≈3"],
+  ["4",  "略偏暗",                        "keep",       "avg≈0.20-0.32，主分映射 base≈4"],
+  ["5",  "正常偏暗",                      "keep",       "avg≈0.32-0.45，主分映射 base≈5"],
+  ["6",  "正常偏亮",                      "keep",       "avg≈0.45-0.58，主分映射 base≈6"],
+  ["7",  "明亮",                          "keep",       "avg≈0.58-0.75，主分映射 base≈7"],
+  ["8",  "高调 (high-key, 暗部填光)",      "borderline", "highlight90>0.10 ∧ spatial_std<0.15 ∧ dark10<0.05 (主分 +1)"],
+  ["9",  "接近过曝",                      "drop",       "hot95>0.20 ∨ avg>0.85 ∨ (avg>0.78 ∧ p99>0.97 ∧ highlight90>0.30)"],
+  ["10", "严重过曝",                      "drop",       "hot95>0.35 ∨ avg>0.92"],
 ];
 const CRITERIA_M = [
-  ["1", "完全静态 (Frozen)",       "drop"],
-  ["2", "切镜型 (PPT/Cut-like)",   "drop"],
-  ["3", "弱运动 (UI/字幕/抖动)",    "drop"],
-  ["4", "正常运动 (Normal)",       "keep"],
-  ["5", "强运动 (Strong)",         "keep"],
+  ["1", "完全静态 (Frozen)",               "drop", "rm<0.005 ∧ ag<0.03 ∧ qp>0.92 ∧ bj_max<0.02"],
+  ["2", "切镜型 (PPT/Cut-like)",           "drop", "rm<0.012 ∧ ag<0.07 ∧ (qp>0.80 ∨ bj_max>0.30)"],
+  ["3", "弱运动 (UI/字幕/抖动)",            "drop", "(ag<0.12 ∧ ent<1.6 ∧ rm<0.04) ∨ (rm<0.06 ∧ ag<0.22 ∧ gs<4px)"],
+  ["4", "正常运动 (Normal)",               "keep", "main_signal<0.65 ∨ ag<0.50 ∨ mm<0.10 (默认档)"],
+  ["5", "强运动 (Strong)",                 "keep", "main_signal≥0.65 ∧ ag≥0.50 ∧ mm≥0.10 (或 ts>0.10 由 4 升 5)"],
 ];
 const CRITERIA_S = [
-  ["1", "接近灰度 (黑白/录屏/夜视)",         "drop"],
-  ["2", "偏灰寡淡 (阴天/老式胶片调色)",       "borderline"],
-  ["3", "正常自然 (日常生活记录)",           "keep"],
-  ["4", "鲜艳自然 (风景/产品/动画) - 最优",   "keep"],
-  ["5", "过饱和滤镜 (强后期/卡通失真)",       "borderline"],
+  ["1", "接近灰度 (黑白/录屏/夜视)",         "drop",       "avg<0.08 ∧ max<0.20"],
+  ["2", "偏灰寡淡 (阴天/老式胶片调色)",       "borderline", "avg≈0.08-0.18，主分映射 base≈2"],
+  ["3", "正常自然 (日常生活记录)",           "keep",       "avg≈0.18-0.35，主分映射 base≈2-3"],
+  ["4", "鲜艳自然 (风景/产品/动画) · 最优",   "keep",       "avg≈0.35-0.55，主分 base≈3-4 (+0.5 if div>2.5)"],
+  ["5", "过饱和滤镜 (强后期/卡通失真)",       "borderline", "hot95>0.30 ∨ (avg>0.65 ∧ div<1.5)"],
 ];
 
 function badgeClass(decision){
@@ -253,8 +345,15 @@ function badgeClass(decision){
 
 function renderCriteriaList(targetId, list){
   const el = document.getElementById(targetId);
-  el.innerHTML = list.map(([sc, label, dec]) =>
-    `<li class="flex items-center gap-2"><span class="pill ${badgeClass(dec)}">${sc}</span><span class="flex-1">${label}</span><span class="text-slate-500">${dec}</span></li>`
+  el.innerHTML = list.map(([sc, label, dec, formula]) => `
+    <li class="criteria-row">
+      <div class="criteria-line-1">
+        <span class="pill ${badgeClass(dec)}">${sc}</span>
+        <span class="criteria-label">${label}</span>
+        <span class="criteria-decision text-slate-500">${dec}</span>
+      </div>
+      <div class="criteria-formula" title="${escapeAttr(formula)}">${escapeHtml(formula)}</div>
+    </li>`
   ).join("");
 }
 renderCriteriaList("criteria-b", CRITERIA_B);
@@ -283,8 +382,10 @@ const charts = {};
 document.getElementById("csv-upload").addEventListener("change", function(e){
   const file = e.target.files[0];
   if (!file) return;
-  document.getElementById("ds-info").textContent = `解析中... ${(file.size/1024/1024).toFixed(1)} MB`;
-  document.getElementById("ds-info").innerHTML = `<span class="spinner"></span> 解析中... ${(file.size/1024/1024).toFixed(1)} MB`;
+  const dsInfo = document.getElementById("ds-info");
+  dsInfo.classList.remove("loaded");
+  dsInfo.classList.add("loading");
+  dsInfo.innerHTML = `<span class="ds-dot"></span>解析中 ${(file.size/1024/1024).toFixed(1)} MB`;
   const startTs = Date.now();
   STATE.rows = [];
   STATE.dates.clear();
@@ -303,13 +404,18 @@ document.getElementById("csv-upload").addEventListener("change", function(e){
     },
     complete: function() {
       const cost = ((Date.now()-startTs)/1000).toFixed(1);
-      document.getElementById("ds-info").textContent = `已加载 ${STATE.rows.length.toLocaleString()} 行 (${cost}s)`;
+      const di = document.getElementById("ds-info");
+      di.classList.remove("loading");
+      di.classList.add("loaded");
+      di.innerHTML = `<span class="ds-dot"></span>${STATE.rows.length.toLocaleString()} 行 · ${cost}s`;
       populateSelectors();
       applyAll();
       document.getElementById("btn-export").disabled = false;
     },
     error: function(err) {
-      document.getElementById("ds-info").textContent = `解析失败: ${err.message || err}`;
+      const di = document.getElementById("ds-info");
+      di.classList.remove("loading", "loaded");
+      di.innerHTML = `<span class="ds-dot"></span>解析失败: ${err.message || err}`;
     },
   });
 });
@@ -381,10 +487,11 @@ function populateSelectors(){
   document.getElementById("vt-mi").innerHTML = buildOpts(STATE.videoTypes.mi);
   document.getElementById("vt-cm").innerHTML = buildOpts(STATE.videoTypes.cm);
 
-  // Video Content 多选
+  // Video Content 多选 (4 列网格 + 搜索)
   const vcDiv = document.getElementById("vc-multi");
-  vcDiv.innerHTML = [...STATE.videoContents].sort().map(c =>
-    `<span class="ml-cb" data-vc="${c}">${c}</span>`
+  const allVc = [...STATE.videoContents].sort();
+  vcDiv.innerHTML = allVc.map(c =>
+    `<span class="ml-cb" data-vc="${escapeAttr(c)}" title="${escapeAttr(c)}"><span class="ml-cb-mark"></span><span class="truncate">${escapeHtml(c)}</span></span>`
   ).join("");
   vcDiv.querySelectorAll(".ml-cb").forEach(el => {
     el.addEventListener("click", () => {
@@ -396,8 +503,42 @@ function populateSelectors(){
         STATE.selectedVideoContents.add(v);
         el.classList.add("checked");
       }
+      updateVcCounter();
+      applyAll();
     });
   });
+  updateVcCounter();
+  // 搜索过滤
+  const search = document.getElementById("vc-search");
+  if (search) {
+    search.value = "";
+    search.oninput = () => {
+      const q = search.value.toLowerCase().trim();
+      vcDiv.querySelectorAll(".ml-cb").forEach(el => {
+        const v = (el.dataset.vc || "").toLowerCase();
+        el.classList.toggle("hidden-search", q && !v.includes(q));
+      });
+    };
+  }
+}
+
+function updateVcCounter() {
+  const counter = document.getElementById("vc-counter");
+  if (counter) {
+    counter.textContent = `${STATE.selectedVideoContents.size} / ${STATE.videoContents.size}`;
+  }
+}
+
+function clearVc() {
+  STATE.selectedVideoContents.clear();
+  document.querySelectorAll("#vc-multi .ml-cb").forEach(el => el.classList.remove("checked"));
+  const search = document.getElementById("vc-search");
+  if (search) {
+    search.value = "";
+    document.querySelectorAll("#vc-multi .ml-cb").forEach(el => el.classList.remove("hidden-search"));
+  }
+  updateVcCounter();
+  applyAll();
 }
 
 // ============================================================
@@ -554,9 +695,9 @@ function renderVideoGrid(){
     <div class="video-card" data-idx="${idx}">
       <video preload="none" controls muted playsinline data-src="${escapeAttr(r.video_url)}" poster=""></video>
       <div class="score-row">
-        <div class="score-cell ${badgeClass(bDec)}" title="brightness 评分">B: ${r.b_score}</div>
-        <div class="score-cell ${badgeClass(mDec)}" title="motion 评分">M: ${r.m_score}</div>
-        <div class="score-cell ${badgeClass(sDec)}" title="saturation 评分">S: ${r.s_score}</div>
+        <div class="score-cell ${badgeClass(bDec)}" title="brightness 评分 1-10">亮度 <span class="score-num">${r.b_score}</span></div>
+        <div class="score-cell ${badgeClass(mDec)}" title="motion 评分 1-5">运动度 <span class="score-num">${r.m_score}</span></div>
+        <div class="score-cell ${badgeClass(sDec)}" title="saturation 评分 1-5">饱和度 <span class="score-num">${r.s_score}</span></div>
       </div>
       <details>
         <summary class="px-2 text-xs text-slate-400">meta 信息 (JSON)</summary>
