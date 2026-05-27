@@ -52,6 +52,29 @@
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     /* Section labels */
     .section-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); font-weight: 600; }
+    /* Multi-select dropdown (Video Type 5 子维度) */
+    .multi-dd { position: relative; display: flex; flex-direction: column; }
+    .multi-dd-label { font-size: 11px; letter-spacing: 0.05em; color: var(--text-4); margin-bottom: 4px; }
+    .multi-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--bg-card-2); border: 1px solid var(--border-subtle); border-radius: 6px; color: var(--text-1); font-size: 13px; cursor: pointer; transition: all 0.15s; min-height: 32px; text-align: left; width: 100%; }
+    .multi-dd-btn:hover { border-color: var(--border-mid); }
+    .multi-dd.open .multi-dd-btn { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .multi-dd-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .multi-dd-arrow { font-size: 10px; color: var(--text-4); transition: transform 0.15s; }
+    .multi-dd.open .multi-dd-arrow { transform: rotate(180deg); color: var(--accent); }
+    .multi-dd-count { background: var(--accent); color: #0a0e1a; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center; }
+    .multi-dd-panel { position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 200px; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: 8px; padding: 6px; max-height: 280px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); }
+    .multi-dd.open .multi-dd-panel { display: block; }
+    .multi-dd-panel::-webkit-scrollbar { width: 6px; }
+    .multi-dd-panel::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+    .multi-dd-panel-actions { display: flex; gap: 4px; padding: 4px 6px 6px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px; }
+    .multi-dd-action { font-size: 10px; color: var(--text-4); cursor: pointer; padding: 2px 6px; border-radius: 3px; transition: all 0.12s; }
+    .multi-dd-action:hover { background: var(--bg-card-2); color: var(--accent); }
+    .multi-dd-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 5px; cursor: pointer; font-size: 12.5px; color: var(--text-2); transition: background 0.12s; user-select: none; }
+    .multi-dd-item:hover { background: var(--bg-card-2); }
+    .multi-dd-item.checked { background: var(--accent-soft); color: var(--text-1); }
+    .multi-dd-item .ml-cb-mark { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border-mid); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .multi-dd-item.checked .ml-cb-mark { background: var(--accent); border-color: var(--accent); }
+    .multi-dd-item.checked .ml-cb-mark::after { content: "✓"; color: #0a0e1a; font-size: 9px; font-weight: 800; line-height: 1; }
     /* Criteria rows (评分标准说明) */
     .criteria-row { padding: 8px 0; border-bottom: 1px dashed var(--border-subtle); list-style: none; }
     .criteria-row:last-child { border-bottom: none; }
@@ -64,12 +87,12 @@
     /* KPI cards */
     .kpi-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px 20px; position: relative; overflow: hidden; }
     .kpi-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--text-4); opacity: 0.6; }
-    .kpi-card.kpi-match::before { background: #34d399; opacity: 1; }
-    .kpi-card.kpi-reject::before { background: #f43f5e; opacity: 1; }
-    .kpi-card.kpi-render::before { background: var(--accent); opacity: 1; }
-    .kpi-card.kpi-final::before { background: #818cf8; opacity: 1; }
-    .kpi-card.kpi-channel::before { background: #c084fc; opacity: 1; }
-    .kpi-card.kpi-author::before { background: #2dd4bf; opacity: 1; }
+    .kpi-card.kpi-match::before   { background: #34d399; opacity: 1; }
+    .kpi-card.kpi-reject::before  { background: #f43f5e; opacity: 1; }
+    .kpi-card.kpi-final::before   { background: #fbbf24; opacity: 1; }
+    .kpi-card.kpi-author::before  { background: #c084fc; opacity: 1; }
+    .kpi-card.kpi-channel::before { background: #e879f9; opacity: 1; }
+    .kpi-card.kpi-render::before  { background: var(--accent); opacity: 1; }
     .kpi-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-4); font-weight: 600; }
     .kpi-value { font-size: 30px; font-weight: 700; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
     .kpi-sub { font-size: 11px; color: var(--text-4); margin-top: 4px; font-variant-numeric: tabular-nums; }
@@ -88,28 +111,6 @@
     .scrollable { max-height: 220px; overflow-y: auto; }
     .scrollable::-webkit-scrollbar { width: 6px; }
     .scrollable::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    /* Multi-select dropdown (Video Type 5 sub-dimensions) */
-    .ms-wrap { position: relative; }
-    .ms-trigger { width: 100%; display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--bg-card-2); border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer; color: var(--text-1); font-size: 13px; height: 30px; transition: border-color 0.15s; text-align: left; }
-    .ms-trigger:hover { border-color: var(--border-mid); }
-    .ms-wrap.open .ms-trigger { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-    .ms-summary { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ms-summary.empty { color: var(--text-4); }
-    .ms-summary .ms-count { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; margin-right: 4px; }
-    .ms-chevron { color: var(--text-4); font-size: 10px; transition: transform 0.15s; flex-shrink: 0; }
-    .ms-wrap.open .ms-chevron { transform: rotate(180deg); color: var(--accent); }
-    .ms-panel { position: absolute; top: calc(100% + 4px); left: 0; right: 0; min-width: 220px; max-width: 360px; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: 8px; padding: 6px; z-index: 40; box-shadow: 0 12px 32px rgba(0,0,0,0.4); max-height: 320px; display: flex; flex-direction: column; }
-    .ms-panel.hidden { display: none; }
-    .ms-opts-scroll { overflow-y: auto; max-height: 240px; }
-    .ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 12.5px; color: var(--text-2); transition: background 0.1s; user-select: none; }
-    .ms-opt:hover { background: var(--bg-card-2); }
-    .ms-opt.checked { background: var(--accent-soft); color: var(--text-1); }
-    .ms-opt .ms-check { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border-mid); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
-    .ms-opt.checked .ms-check { background: var(--accent); border-color: var(--accent); }
-    .ms-opt.checked .ms-check::after { content: "✓"; color: #0a0e1a; font-size: 9px; font-weight: 800; line-height: 1; }
-    .ms-actions { display: flex; gap: 6px; padding: 6px 4px 4px; border-top: 1px solid var(--border-subtle); margin-top: 4px; }
-    .ms-actions button { flex: 1; background: var(--bg-card-2); border: 1px solid var(--border-subtle); color: var(--text-3); padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.12s; }
-    .ms-actions button:hover { border-color: var(--accent); color: var(--accent); }
     /* Video Content multi-select grid */
     .vc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
     @media (min-width: 1280px) { .vc-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
@@ -186,12 +187,12 @@
 
     <div class="hairline pt-3">
       <div class="section-label mb-3">分类筛选 · Video Type / Content (默认全部)</div>
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-        <div class="flex flex-col text-xs"><span class="text-slate-400">Camera Perspective</span><div class="ms-wrap mt-1" data-dim="cp"></div></div>
-        <div class="flex flex-col text-xs"><span class="text-slate-400">Primary Subject</span><div class="ms-wrap mt-1" data-dim="ps"></div></div>
-        <div class="flex flex-col text-xs"><span class="text-slate-400">Interaction Mode</span><div class="ms-wrap mt-1" data-dim="im"></div></div>
-        <div class="flex flex-col text-xs"><span class="text-slate-400">Motion Intensity</span><div class="ms-wrap mt-1" data-dim="mi"></div></div>
-        <div class="flex flex-col text-xs"><span class="text-slate-400">Capture Method</span><div class="ms-wrap mt-1" data-dim="cm"></div></div>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="multi-dd" data-dim="cp"><div class="multi-dd-label">Camera Perspective</div><button class="multi-dd-btn" type="button" onclick="toggleMultiDd(this)"><span class="multi-dd-text">全部</span><span class="multi-dd-arrow">▾</span></button><div class="multi-dd-panel" id="dd-cp"></div></div>
+        <div class="multi-dd" data-dim="ps"><div class="multi-dd-label">Primary Subject</div><button class="multi-dd-btn" type="button" onclick="toggleMultiDd(this)"><span class="multi-dd-text">全部</span><span class="multi-dd-arrow">▾</span></button><div class="multi-dd-panel" id="dd-ps"></div></div>
+        <div class="multi-dd" data-dim="im"><div class="multi-dd-label">Interaction Mode</div><button class="multi-dd-btn" type="button" onclick="toggleMultiDd(this)"><span class="multi-dd-text">全部</span><span class="multi-dd-arrow">▾</span></button><div class="multi-dd-panel" id="dd-im"></div></div>
+        <div class="multi-dd" data-dim="mi"><div class="multi-dd-label">Motion Intensity</div><button class="multi-dd-btn" type="button" onclick="toggleMultiDd(this)"><span class="multi-dd-text">全部</span><span class="multi-dd-arrow">▾</span></button><div class="multi-dd-panel" id="dd-mi"></div></div>
+        <div class="multi-dd" data-dim="cm"><div class="multi-dd-label">Capture Method</div><button class="multi-dd-btn" type="button" onclick="toggleMultiDd(this)"><span class="multi-dd-text">全部</span><span class="multi-dd-arrow">▾</span></button><div class="multi-dd-panel" id="dd-cm"></div></div>
       </div>
 
       <div class="vc-block mt-3 pt-3 hairline">
@@ -244,45 +245,41 @@
   </section>
 
   <!-- Stats panel -->
-  <section class="grid grid-cols-1 md:grid-cols-4 gap-3">
+  <section class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
     <div class="kpi-card">
       <div class="kpi-label">日期范围内总样本</div>
       <div class="kpi-value" id="stat-total">—</div>
       <div class="kpi-sub">&nbsp;</div>
     </div>
     <div class="kpi-card kpi-match">
-      <div class="kpi-label">满足阈值 · Match</div>
+      <div class="kpi-label">阈值匹配 · Match</div>
       <div class="kpi-value text-emerald-400" id="stat-match">—</div>
       <div class="kpi-sub" id="stat-match-pct">—</div>
     </div>
     <div class="kpi-card kpi-reject">
-      <div class="kpi-label">不满足阈值 · Reject</div>
+      <div class="kpi-label">阈值不匹配 · Reject</div>
       <div class="kpi-value text-rose-400" id="stat-reject">—</div>
       <div class="kpi-sub" id="stat-reject-pct">—</div>
+    </div>
+    <div class="kpi-card kpi-final">
+      <div class="kpi-label">全条件命中 · 含 Author</div>
+      <div class="kpi-value text-amber-400" id="stat-final">—</div>
+      <div class="kpi-sub" id="stat-final-pct">—</div>
+    </div>
+    <div class="kpi-card kpi-author">
+      <div class="kpi-label">全条件 · Author 数</div>
+      <div class="kpi-value text-purple-400" id="stat-final-authors">—</div>
+      <div class="kpi-sub">unique authors</div>
+    </div>
+    <div class="kpi-card kpi-channel">
+      <div class="kpi-label">全条件 · Channel 数</div>
+      <div class="kpi-value text-fuchsia-400" id="stat-final-channels">—</div>
+      <div class="kpi-sub">unique channels</div>
     </div>
     <div class="kpi-card kpi-render">
       <div class="kpi-label">实际渲染 · 采样后</div>
       <div class="kpi-value text-sky-400" id="stat-rendered">—</div>
       <div class="kpi-sub" id="stat-render-info">—</div>
-    </div>
-  </section>
-
-  <!-- 全条件满足后的细分统计 (含 author 过滤) -->
-  <section class="grid grid-cols-1 md:grid-cols-3 gap-3">
-    <div class="kpi-card kpi-final">
-      <div class="kpi-label">最终保留 · 全条件 (含 author)</div>
-      <div class="kpi-value text-indigo-400" id="stat-final">—</div>
-      <div class="kpi-sub" id="stat-final-pct">—</div>
-    </div>
-    <div class="kpi-card kpi-channel">
-      <div class="kpi-label">涉及 Channel 数</div>
-      <div class="kpi-value text-purple-400" id="stat-channels">—</div>
-      <div class="kpi-sub" id="stat-channels-avg">—</div>
-    </div>
-    <div class="kpi-card kpi-author">
-      <div class="kpi-label">涉及 Author 数</div>
-      <div class="kpi-value text-teal-400" id="stat-authors">—</div>
-      <div class="kpi-sub" id="stat-authors-avg">—</div>
     </div>
   </section>
 
@@ -413,13 +410,26 @@ const STATE = {
   rendered: [],    // 实际渲染（采样 + 截断后）
   dates: new Set(),
   authors: new Set(),
-  // Video Type 5 子维度：所有可选项的集合
   videoTypes: { cp: new Set(), ps: new Set(), im: new Set(), mi: new Set(), cm: new Set() },
-  // Video Type 5 子维度：用户当前选中的项（每个 Set 为空 = 不过滤该维度）
-  vtSelections: { cp: new Set(), ps: new Set(), im: new Set(), mi: new Set(), cm: new Set() },
+  vtSelected:  { cp: new Set(), ps: new Set(), im: new Set(), mi: new Set(), cm: new Set() },
   videoContents: new Set(),
   selectedVideoContents: new Set(),
 };
+
+const VT_DIM_LABELS = {
+  cp: "Camera Perspective",
+  ps: "Primary Subject",
+  im: "Interaction Mode",
+  mi: "Motion Intensity",
+  cm: "Capture Method",
+};
+
+// 全局 click：点空白处关闭打开的多选下拉
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".multi-dd")) {
+    document.querySelectorAll(".multi-dd.open").forEach(el => el.classList.remove("open"));
+  }
+});
 
 const charts = {};
 
@@ -437,7 +447,7 @@ document.getElementById("csv-upload").addEventListener("change", function(e){
   STATE.rows = [];
   STATE.dates.clear();
   STATE.authors.clear();
-  ["cp","ps","im","mi","cm"].forEach(k => { STATE.videoTypes[k].clear(); STATE.vtSelections[k].clear(); });
+  ["cp","ps","im","mi","cm"].forEach(k => { STATE.videoTypes[k].clear(); STATE.vtSelected[k].clear(); });
   STATE.videoContents.clear();
   STATE.selectedVideoContents.clear();
 
@@ -525,8 +535,8 @@ function populateSelectors(){
   dateSel.innerHTML = '<option value="">所有日期</option>' +
     [...STATE.dates].sort().reverse().map(d => `<option value="${d}">${d}</option>`).join("");
 
-  // Video Type 5 维度 multi-select
-  ["cp","ps","im","mi","cm"].forEach(buildMultiSelect);
+  // Video Type 5 维度（多选下拉）
+  ["cp","ps","im","mi","cm"].forEach(dim => buildMultiDd(dim));
 
   // Video Content 多选 (4 列网格 + 搜索)
   const vcDiv = document.getElementById("vc-multi");
@@ -570,6 +580,77 @@ function updateVcCounter() {
   }
 }
 
+// ===== Video Type 多选下拉 =====
+function buildMultiDd(dim) {
+  const panel = document.getElementById(`dd-${dim}`);
+  const items = [...STATE.videoTypes[dim]].sort();
+  panel.innerHTML = `
+    <div class="multi-dd-panel-actions">
+      <span class="multi-dd-action" onclick="setMultiDd('${dim}', true)">全选</span>
+      <span class="multi-dd-action" onclick="setMultiDd('${dim}', false)">清空</span>
+      <span class="multi-dd-action ml-auto" style="margin-left:auto;color:var(--text-4)">${items.length} 项</span>
+    </div>
+    ${items.map(v => `
+      <div class="multi-dd-item" data-val="${escapeAttr(v)}" onclick="toggleMultiItem('${dim}', this)">
+        <span class="ml-cb-mark"></span>
+        <span class="truncate flex-1">${escapeHtml(v)}</span>
+      </div>
+    `).join("")}
+  `;
+  syncMultiDdBtn(dim);
+}
+
+function toggleMultiDd(btn) {
+  const dd = btn.closest(".multi-dd");
+  const wasOpen = dd.classList.contains("open");
+  document.querySelectorAll(".multi-dd.open").forEach(el => el.classList.remove("open"));
+  if (!wasOpen) dd.classList.add("open");
+}
+
+function toggleMultiItem(dim, itemEl) {
+  const v = itemEl.dataset.val;
+  const set = STATE.vtSelected[dim];
+  if (set.has(v)) { set.delete(v); itemEl.classList.remove("checked"); }
+  else { set.add(v); itemEl.classList.add("checked"); }
+  syncMultiDdBtn(dim);
+  applyAll();
+}
+
+function setMultiDd(dim, all) {
+  const set = STATE.vtSelected[dim];
+  set.clear();
+  if (all) for (const v of STATE.videoTypes[dim]) set.add(v);
+  document.querySelectorAll(`#dd-${dim} .multi-dd-item`).forEach(el => {
+    el.classList.toggle("checked", set.has(el.dataset.val));
+  });
+  syncMultiDdBtn(dim);
+  applyAll();
+}
+
+function syncMultiDdBtn(dim) {
+  const dd = document.querySelector(`.multi-dd[data-dim="${dim}"]`);
+  if (!dd) return;
+  const btn = dd.querySelector(".multi-dd-btn");
+  const textEl = btn.querySelector(".multi-dd-text");
+  const set = STATE.vtSelected[dim];
+  // 先去掉旧的 count badge
+  btn.querySelectorAll(".multi-dd-count").forEach(el => el.remove());
+  if (set.size === 0) {
+    textEl.textContent = "全部";
+    textEl.style.color = "var(--text-3)";
+  } else if (set.size === 1) {
+    textEl.textContent = [...set][0];
+    textEl.style.color = "var(--text-1)";
+  } else {
+    textEl.textContent = [...set][0];
+    textEl.style.color = "var(--text-1)";
+    const badge = document.createElement("span");
+    badge.className = "multi-dd-count";
+    badge.textContent = `+${set.size - 1}`;
+    btn.insertBefore(badge, btn.querySelector(".multi-dd-arrow"));
+  }
+}
+
 function clearVc() {
   STATE.selectedVideoContents.clear();
   document.querySelectorAll("#vc-multi .ml-cb").forEach(el => el.classList.remove("checked"));
@@ -583,93 +664,6 @@ function clearVc() {
 }
 
 // ============================================================
-// Multi-select 控件 (Video Type 5 子维度)
-// ============================================================
-function buildMultiSelect(dim){
-  const wrap = document.querySelector(`.ms-wrap[data-dim="${dim}"]`);
-  if (!wrap) return;
-  const opts = [...STATE.videoTypes[dim]].sort();
-  wrap.innerHTML = `
-    <button class="ms-trigger" type="button">
-      <span class="ms-summary empty">全部</span>
-      <span class="ms-chevron">▾</span>
-    </button>
-    <div class="ms-panel hidden">
-      <div class="ms-opts-scroll">
-        ${opts.map(v => `<label class="ms-opt" data-value="${escapeAttr(v)}"><span class="ms-check"></span><span class="ms-text">${escapeHtml(v)}</span></label>`).join("")}
-      </div>
-      <div class="ms-actions">
-        <button type="button" data-act="clear">清空</button>
-        <button type="button" data-act="all">全选</button>
-      </div>
-    </div>
-  `;
-  const trigger = wrap.querySelector(".ms-trigger");
-  const panel = wrap.querySelector(".ms-panel");
-  trigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    // 关闭其他面板
-    document.querySelectorAll(".ms-wrap.open").forEach(w => {
-      if (w !== wrap) { w.classList.remove("open"); w.querySelector(".ms-panel").classList.add("hidden"); }
-    });
-    wrap.classList.toggle("open");
-    panel.classList.toggle("hidden");
-  });
-  panel.addEventListener("click", (e) => e.stopPropagation());
-  wrap.querySelectorAll(".ms-opt").forEach(opt => {
-    opt.addEventListener("click", (e) => {
-      e.preventDefault();
-      const v = opt.dataset.value;
-      const sel = STATE.vtSelections[dim];
-      if (sel.has(v)) { sel.delete(v); opt.classList.remove("checked"); }
-      else { sel.add(v); opt.classList.add("checked"); }
-      updateMsSummary(dim);
-      applyAll();
-    });
-  });
-  wrap.querySelector('[data-act="clear"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    STATE.vtSelections[dim].clear();
-    wrap.querySelectorAll(".ms-opt").forEach(o => o.classList.remove("checked"));
-    updateMsSummary(dim);
-    applyAll();
-  });
-  wrap.querySelector('[data-act="all"]').addEventListener("click", (e) => {
-    e.stopPropagation();
-    STATE.vtSelections[dim] = new Set(opts);
-    wrap.querySelectorAll(".ms-opt").forEach(o => o.classList.add("checked"));
-    updateMsSummary(dim);
-    applyAll();
-  });
-  updateMsSummary(dim);
-}
-
-function updateMsSummary(dim){
-  const wrap = document.querySelector(`.ms-wrap[data-dim="${dim}"]`);
-  if (!wrap) return;
-  const sel = STATE.vtSelections[dim];
-  const total = STATE.videoTypes[dim].size;
-  const summary = wrap.querySelector(".ms-summary");
-  if (sel.size === 0) {
-    summary.classList.add("empty");
-    summary.innerHTML = "全部";
-  } else {
-    summary.classList.remove("empty");
-    const first = [...sel][0];
-    const more = sel.size > 1 ? `<span class="ms-count">+${sel.size - 1}</span>` : "";
-    summary.innerHTML = `<span class="ms-count">${sel.size}/${total}</span> ${escapeHtml(first.length > 18 ? first.slice(0,18)+"…" : first)} ${more}`;
-  }
-}
-
-// 点空白关闭所有 ms 面板
-document.addEventListener("click", () => {
-  document.querySelectorAll(".ms-wrap.open").forEach(w => {
-    w.classList.remove("open");
-    w.querySelector(".ms-panel").classList.add("hidden");
-  });
-});
-
-// ============================================================
 // 过滤 / 采样 / 渲染主流程
 // ============================================================
 function getThresholds(){
@@ -678,12 +672,11 @@ function getThresholds(){
     sampling: document.getElementById("filter-sampling").value,
     pageSize: parseInt(document.getElementById("filter-pagesize").value, 10),
     author: document.getElementById("filter-author").value,
-    // Video Type 5 维度多选集合 (空集 = 不过滤)
-    cpSet: STATE.vtSelections.cp,
-    psSet: STATE.vtSelections.ps,
-    imSet: STATE.vtSelections.im,
-    miSet: STATE.vtSelections.mi,
-    cmSet: STATE.vtSelections.cm,
+    cpSet: STATE.vtSelected.cp,
+    psSet: STATE.vtSelected.ps,
+    imSet: STATE.vtSelected.im,
+    miSet: STATE.vtSelected.mi,
+    cmSet: STATE.vtSelected.cm,
     vcSet: STATE.selectedVideoContents,
     bMin: parseInt(document.getElementById("b-min").value, 10),
     bMax: parseInt(document.getElementById("b-max").value, 10),
@@ -696,11 +689,13 @@ function getThresholds(){
 
 function rowMatches(r, t){
   if (t.date && r.date !== t.date) return false;
+  // Video Type 5 子维度（多选；空 Set = 不过滤）
   if (t.cpSet.size > 0 && !t.cpSet.has(r.cp)) return false;
   if (t.psSet.size > 0 && !t.psSet.has(r.ps)) return false;
   if (t.imSet.size > 0 && !t.imSet.has(r.im)) return false;
   if (t.miSet.size > 0 && !t.miSet.has(r.mi)) return false;
   if (t.cmSet.size > 0 && !t.cmSet.has(r.cm)) return false;
+  // Video Content 多选（任一命中即匹配）
   if (t.vcSet.size > 0) {
     let any = false;
     for (const c of r.vc) if (t.vcSet.has(c)) { any = true; break; }
@@ -759,30 +754,27 @@ function applyAll(){
 
   // 7) 更新统计
   const rejectCount = totalInDate - matched.length;
+  // 全条件命中 = finalMatched（已含 author 过滤）；author / channel 唯一计数
+  const uniqAuthors = new Set();
+  const uniqChannels = new Set();
+  for (const r of finalMatched) {
+    if (r.author) uniqAuthors.add(r.author);
+    if (r.channel) uniqChannels.add(r.channel);
+  }
+
   document.getElementById("stat-total").textContent = totalInDate.toLocaleString();
   document.getElementById("stat-match").textContent = matched.length.toLocaleString();
   document.getElementById("stat-match-pct").textContent = totalInDate ? (100*matched.length/totalInDate).toFixed(2) + "%" : "—";
   document.getElementById("stat-reject").textContent = rejectCount.toLocaleString();
   document.getElementById("stat-reject-pct").textContent = totalInDate ? (100*rejectCount/totalInDate).toFixed(2) + "%" : "—";
+  document.getElementById("stat-final").textContent = finalMatched.length.toLocaleString();
+  document.getElementById("stat-final-pct").textContent =
+    matched.length ? `${(100*finalMatched.length/matched.length).toFixed(2)}% of match` : "—";
+  document.getElementById("stat-final-authors").textContent = uniqAuthors.size.toLocaleString();
+  document.getElementById("stat-final-channels").textContent = uniqChannels.size.toLocaleString();
   document.getElementById("stat-rendered").textContent = rendered.length.toLocaleString();
   const samplingDesc = t.sampling === "channel" ? `channel 分层 (${Object.keys(sampled.reduce((acc,r)=>{acc[r.channel||"(none)"]=1;return acc;},{})).length} 个 channel)` : "随机";
   document.getElementById("stat-render-info").textContent = `${samplingDesc} · 上限 ${t.pageSize}`;
-
-  // 全条件 (含 author) 后的细分统计：样本数 / channel 数 / author 数
-  const finalChannels = new Set(); const finalAuthors = new Set();
-  for (const r of finalMatched) { if (r.channel) finalChannels.add(r.channel); if (r.author) finalAuthors.add(r.author); }
-  document.getElementById("stat-final").textContent = finalMatched.length.toLocaleString();
-  document.getElementById("stat-final-pct").textContent = totalInDate
-    ? `${(100*finalMatched.length/totalInDate).toFixed(2)}% · 占日期范围`
-    : "—";
-  document.getElementById("stat-channels").textContent = finalChannels.size.toLocaleString();
-  document.getElementById("stat-channels-avg").textContent = finalChannels.size > 0
-    ? `avg ${(finalMatched.length/finalChannels.size).toFixed(1)} videos / channel`
-    : "—";
-  document.getElementById("stat-authors").textContent = finalAuthors.size.toLocaleString();
-  document.getElementById("stat-authors-avg").textContent = finalAuthors.size > 0
-    ? `avg ${(finalMatched.length/finalAuthors.size).toFixed(1)} videos / author`
-    : "—";
 
   // 8) 阈值显示文字
   document.getElementById("b-range-label").textContent = `[${t.bMin}, ${t.bMax}]`;
@@ -800,8 +792,7 @@ function applyAll(){
     `渲染 ${rendered.length} / 匹配 ${matched.length} / 总数 ${totalInDate}`;
 }
 
-// 阈值变化即时刷新
-// 阈值变化即时刷新（Video Type 多选 / Video Content 多选已在各自处理函数中调用 applyAll）
+// 阈值变化即时刷新（Video Type 多选下拉的事件在 toggleMultiItem / setMultiDd 中已处理）
 ["filter-date","filter-sampling","filter-pagesize","filter-author",
  "b-min","b-max","m-min","m-max","s-min","s-max"].forEach(id => {
   const el = document.getElementById(id);
